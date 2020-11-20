@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const userSchema = new Schema({
   email: { type: String, required: true, unique: true },
   password: String,
+  avatarURL: String,
   subscription: {
     type: String,
     enum: ["free", "pro", "premium"],

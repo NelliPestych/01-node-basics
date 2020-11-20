@@ -1,8 +1,9 @@
 const Joi = require("joi");
 const userModel = require("./user.model");
 const bcrypt = require("bcrypt");
-const { UnauthorizedError } = require('../api/helpers/errors.constructor');
+const { UnauthorizedError } = require("../api/helpers/errors.constructor");
 const jwt = require("jsonwebtoken");
+const { Avatar, removeAvatar, minifyImage } = require("./user.helper");
 const {
   Types: { ObjectId },
 } = require("mongoose");
@@ -10,7 +11,6 @@ const {
 require("dotenv").config();
 
 class UserController {
-
   get addUser() {
     return this._addUser.bind(this);
   }
@@ -25,6 +25,14 @@ class UserController {
 
   get getCurrentUser() {
     return this._getCurrentUser.bind(this);
+  }
+
+  get signIn() {
+    return this._signIn.bind(this);
+  }
+
+  get addAvatar() {
+    return this._addAvatar.bind(this);
   }
 
   async _getUsers(req, res, next) {
@@ -47,13 +55,19 @@ class UserController {
         return res.status(400).send("Email in use");
       }
 
+      await Avatar(email);
+      await minifyImage();
+      await removeAvatar(`${email}.png`);
+
       const user = await userModel.create({
         email,
+        avatarURL: `http://localhost:3000/images/${email}.png`,
         password: passwordHash,
       });
       return res.status(201).json({
         user: {
           email: user.email,
+          avatarURL: user.avatarURL,
           subscription: user.subscription,
         },
       });
@@ -62,7 +76,7 @@ class UserController {
     }
   }
 
-  async signIn(req, res, next) {
+  async _signIn(req, res, next) {
     try {
       const { email, password } = req.body;
       const user = await userModel.findUserByEmail(email);
@@ -76,9 +90,10 @@ class UserController {
       }
 
       const token = await jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: 172800,
+        expiresIn: '7d',
       });
       await userModel.updateToken(user._id, token);
+      const token = await this.checkUser(email, password);
       return res.status(200).json({
         token: token,
         user: {
@@ -101,15 +116,13 @@ class UserController {
       } catch (err) {
         next(new UnauthorizedError("User not authorized"));
       }
-      const user = await userModel.findById(
-        userId
-      );
+      const user = await userModel.findById(userId);
       if (!user || user.token !== token) {
         throw new UnauthorizedError();
       }
       req.user = user;
       req.token = token;
-  
+
       next();
     } catch (err) {
       next(err);
@@ -156,6 +169,18 @@ class UserController {
     }
   }
 
+  async _addAvatar(req, res, next) {
+    try {
+      await minifyImage();
+      await removeAvatar(req.file.filename);
+      return res.status(200).json({
+        avatarURL: `http://localhost:3000/images/${req.file.filename}`,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async _getById(req, res, next) {
     try {
       const userId = req.params.id;
@@ -164,7 +189,7 @@ class UserController {
         return res.status(404).send();
       }
 
-      const [userForResponse] = this.prepareUsersResponse([user])
+      const [userForResponse] = this.prepareUsersResponse([user]);
       return res.status(200).json(userForResponse);
     } catch (err) {
       next(err);
