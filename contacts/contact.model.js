@@ -7,24 +7,23 @@ const contactSchema = new Schema({
   phone: { type: String, required: true },
   subscription: { type: String, required: true },
   password: { type: String, required: true },
-  token: { type: String, required: true }
+  token: { type: String, required: true },
 });
 
 contactSchema.statics.findContactByIdAndUpdate = findContactByIdAndUpdate;
 
 async function findContactByIdAndUpdate(contactId, updateParams) {
-    return this.findByIdAndUpdate(
-        contactId,
-        {
-            $set: updateParams,
-        },
-        {
-            new: true,
-        }
-    );
+  return this.findByIdAndUpdate(
+    contactId,
+    {
+      $set: updateParams,
+    },
+    {
+      new: true,
+    }
+  );
 }
 
-
-const contactModel = mongoose.model('Contact', contactSchema);
+const contactModel = mongoose.model("Contact", contactSchema);
 
 module.exports = contactModel;

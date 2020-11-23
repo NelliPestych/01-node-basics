@@ -9,6 +9,7 @@ ContactRouter.get("/:contactId", ContactController.validateId, ContactController
 
 ContactRouter.post(
   "/",
+  ContactController.validateCreateContact,
   ContactController.addContact
 );
 
@@ -17,6 +18,7 @@ ContactRouter.delete("/:contactId", ContactController.validateId, ContactControl
 ContactRouter.patch(
   "/:contactId",
   ContactController.validateId,
+  ContactController.validateUpdateContact,
   ContactController.updateContact
 );
 
